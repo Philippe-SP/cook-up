@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #FF5733;
+}
+
+:root {
+  background-color: #f8fafc;
+  color: #0f172a; /* Force le texte en sombre pour éviter le blanc sur blanc */
+}
