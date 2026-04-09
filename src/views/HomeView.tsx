@@ -1,43 +1,80 @@
-// src/views/HomeView.tsx
-import RecipeCard from '../components/RecipeCard';
-import type { Recipe } from '../logic/types';
+import { useEffect, useState } from 'react';
+import { supabase } from '../logic/supabase';
 
-const MOCK_RECIPES: Recipe[] = [
-  { id: '1', title: 'Gratin Dauphinois', category: 'Plat', prepTime: 45, servings: 4, isFavorite: true, ingredients: [], steps: [] },
-  { id: '2', title: 'Tarte aux Pommes', category: 'Dessert', prepTime: 60, servings: 6, isFavorite: false, ingredients: [], steps: [] },
-];
+// On définit le type pour TypeScript
+interface Recipe {
+  id: string;
+  title: string;
+  category: string;
+  prep_time: number;
+  emoji: string;
+  is_favorite: boolean;
+}
 
 export default function HomeView() {
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchRecipes();
+  }, []);
+
+  async function fetchRecipes() {
+    try {
+      setLoading(true);
+      // On récupère les recettes de l'utilisateur connecté
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('id, title, category, prep_time, emoji, is_favorite')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (data) setRecipes(data);
+    } catch (error) {
+      console.error("Erreur chargement recettes:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) return <div className="text-center py-10 text-slate-400">Chargement de tes pépites...</div>;
+
   return (
     <div className="space-y-6">
-      <section className="mb-6">
-        <h2 className="text-3xl font-extrabold text-slate-800 leading-tight">
-          Bonjour,<br/> 
-          <span className="text-orange-500">Qu'est-ce qu'on mijote ?</span>
-        </h2>
-      </section>
-
-      <div className="relative mb-8">
-        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-          <span className="text-xl">🔍</span>
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="text-3xl font-black text-slate-800">Tes <span className="text-orange-500">Recettes</span></h2>
+          <p className="text-slate-500 text-sm font-medium">{recipes.length} pépites enregistrées</p>
         </div>
-        <input 
-          type="text" 
-          placeholder="Rechercher une recette..." 
-          className="w-full bg-slate-50 border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-orange-500 transition-all placeholder:text-slate-400 shadow-inner outline-none"
-        />
       </div>
 
-      <div className="space-y-4">
-        <div className="flex justify-between items-center px-1">
-          <h3 className="font-bold text-slate-700">Mes Recettes</h3>
-          <button className="text-xs font-bold text-orange-600 px-2 py-1 bg-orange-50 rounded-lg italic tracking-wide">Voir tout</button>
+      {recipes.length === 0 ? (
+        <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] p-12 text-center space-y-4">
+          <span className="text-4xl">🍳</span>
+          <p className="text-slate-400 font-bold">Aucune recette pour le moment. <br/>Appuie sur le ＋ pour commencer !</p>
         </div>
-        
-        {MOCK_RECIPES.map(recipe => (
-          <RecipeCard key={recipe.id} recipe={recipe} />
-        ))}
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {recipes.map((recipe) => (
+            <div 
+              key={recipe.id}
+              className="bg-white border border-slate-100 p-4 rounded-[2rem] shadow-sm flex items-center gap-4 active:scale-95 transition-all"
+            >
+              <div className="h-16 w-16 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner">
+                {recipe.emoji || '🥘'}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-slate-800">{recipe.title}</h3>
+                <div className="flex gap-2 text-[10px] font-bold uppercase tracking-wider mt-1">
+                  <span className="text-orange-500">{recipe.category}</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-slate-400">⏱️ {recipe.prep_time} min</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
