@@ -8,6 +8,7 @@ interface Recipe {
   category: string;
   prep_time: number;
   emoji: string;
+  bg_color: string;
   is_favorite: boolean;
 }
 
@@ -25,7 +26,7 @@ export default function HomeView() {
       // On récupère les recettes de l'utilisateur connecté
       const { data, error } = await supabase
         .from('recipes')
-        .select('id, title, category, prep_time, emoji, is_favorite')
+        .select('id, title, category, prep_time, emoji, bg_color, is_favorite')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -60,7 +61,10 @@ export default function HomeView() {
               key={recipe.id}
               className="bg-white border border-slate-100 p-4 rounded-[2rem] shadow-sm flex items-center gap-4 active:scale-95 transition-all"
             >
-              <div className="h-16 w-16 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner">
+              <div 
+              key={recipe.id}
+              className={`h-16 w-16 ${recipe.bg_color || 'bg-slate-50'} rounded-2xl flex items-center justify-center text-3xl shadow-inner`}
+              >
                 {recipe.emoji || '🥘'}
               </div>
               <div className="flex-1">
