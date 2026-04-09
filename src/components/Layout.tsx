@@ -1,5 +1,4 @@
 // src/components/Layout.tsx
-import { useState } from 'react';
 
 interface LayoutProps {
   children: React.ReactNode;
