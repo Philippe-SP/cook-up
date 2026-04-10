@@ -6,12 +6,12 @@ interface Recipe {
   title: string;
   category: string;
   prep_time: number;
+  servings: number; // Ajouté pour la cohérence avec la BDD
   emoji: string;
   bg_color: string;
   is_favorite: boolean;
 }
 
-// 1. On définit que HomeView attend une fonction "onSelectRecipe"
 interface HomeViewProps {
   onSelectRecipe: (id: string) => void;
 }
@@ -29,11 +29,11 @@ export default function HomeView({ onSelectRecipe }: HomeViewProps) {
       setLoading(true);
       const { data, error } = await supabase
         .from('recipes')
-        .select('id, title, category, prep_time, emoji, bg_color, is_favorite')
+        .select('id, title, category, prep_time, servings, emoji, bg_color, is_favorite') // Ajout de servings ici
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      if (data) setRecipes(data);
+      if (data) setRecipes(data as Recipe[]);
     } catch (error) {
       console.error("Erreur chargement recettes:", error);
     } finally {
@@ -70,17 +70,19 @@ export default function HomeView({ onSelectRecipe }: HomeViewProps) {
                 {recipe.emoji || '🥘'}
               </div>
 
-              {/* Infos texte */}
+              {/* Infos texte - Bloc mis à jour */}
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-slate-800 truncate">{recipe.title}</h3>
-                <div className="flex gap-2 text-[10px] font-bold uppercase tracking-wider mt-1 items-center">
+                <div className="flex gap-2 text-[10px] font-bold uppercase tracking-wider mt-1 items-center flex-wrap">
                   <span className="text-orange-500">{recipe.category}</span>
                   <span className="text-slate-300">•</span>
                   <span className="text-slate-400">⏱️ {recipe.prep_time} min</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-slate-400">👥 {recipe.servings || 2} pers.</span>
                 </div>
               </div>
 
-              {/* BLOC MODIFIÉ ICI */}
+              {/* Bloc de droite : Favori + Flèche */}
               <div className="flex items-center gap-3 pr-2 flex-shrink-0">
                 {recipe.is_favorite && (
                   <span className="text-lg animate-in zoom-in duration-300">🧡</span>

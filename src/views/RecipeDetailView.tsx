@@ -23,6 +23,7 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [displayServings, setDisplayServings] = useState(2);
 
   useEffect(() => {
     async function getRecipe() {
@@ -32,13 +33,26 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
         .eq('id', recipeId)
         .single();
       
-      setRecipe(data);
+      if (data) {
+        setRecipe(data);
+        setDisplayServings(data.servings || 2);
+      }
       setLoading(false);
     }
     getRecipe();
   }, [recipeId]);
 
-  // --- ACTIONS ---
+  // Ajustement dynamique des quantités
+  const adjustAmount = (amount: string) => {
+    if (!recipe) return amount;
+    const ratio = displayServings / (recipe.servings || 1);
+    // RegEx pour trouver les nombres (entiers ou décimaux)
+    return amount.replace(/(\d+(?:[\.,]\d+)?)/g, (match) => {
+      const num = parseFloat(match.replace(',', '.'));
+      const adjusted = Math.round(num * ratio * 10) / 10;
+      return adjusted.toString().replace('.', ',');
+    });
+  };
 
   const toggleFavorite = async () => {
     if (!recipe) return;
@@ -57,15 +71,12 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
       .delete()
       .eq('id', recipeId);
 
-    if (error) {
-      alert(error.message);
-    } else {
+    if (error) alert(error.message);
+    else {
       setShowDeleteConfirm(false);
       onBack();
     }
   };
-
-  // --- RENDU ---
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center p-20 animate-pulse">
@@ -79,7 +90,7 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
   return (
     <div className="space-y-8 animate-in slide-in-from-right duration-300 pb-24">
       
-      {/* HEADER : Retour + Titre */}
+      {/* HEADER */}
       <div className="flex items-start gap-4 px-2">
         <button 
           onClick={onBack} 
@@ -110,19 +121,33 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
         </div>
 
         <div className="flex gap-2">
-            <button 
-              onClick={toggleFavorite}
-              className="h-12 w-12 bg-white/50 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-all"
-            >
+            <button onClick={toggleFavorite} className="h-12 w-12 bg-white/50 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-all">
               {recipe.is_favorite ? '🧡' : '🤍'}
             </button>
-            
-            <button 
-              onClick={() => setShowDeleteConfirm(true)}
-              className="h-12 w-12 bg-white/30 rounded-2xl flex items-center justify-center text-lg hover:bg-red-100 hover:text-red-500 transition-colors active:scale-90"
-            >
+            <button onClick={() => setShowDeleteConfirm(true)} className="h-12 w-12 bg-white/30 rounded-2xl flex items-center justify-center text-lg hover:bg-red-100 hover:text-red-500 transition-colors active:scale-90">
               🗑️
             </button>
+        </div>
+      </div>
+
+      {/* SECTION INGRÉDIENTS AVEC AJUSTEMENT */}
+      <div className="space-y-4 px-2">
+        <div className="flex items-center justify-between px-4 bg-slate-50 p-4 rounded-[2rem] border border-slate-100/50">
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Ingrédients</h3>
+          <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-100">
+            <button onClick={() => setDisplayServings(Math.max(1, displayServings - 1))} className="text-orange-500 font-black px-1">-</button>
+            <span className="text-xs font-black text-slate-800 min-w-[50px] text-center">{displayServings} pers.</span>
+            <button onClick={() => setDisplayServings(displayServings + 1)} className="text-orange-500 font-black px-1">+</button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2">
+          {recipe.ingredients?.map((ing, index) => (
+            <div key={index} className="flex justify-between items-center p-4 bg-white border border-slate-50 rounded-2xl shadow-sm mx-1">
+              <span className="text-sm font-medium text-slate-600">{ing.name}</span>
+              <span className="text-sm font-black text-orange-500">{adjustAmount(ing.amount)}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -135,16 +160,13 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
         
         <div className="space-y-8 relative">
           <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-slate-100 -z-10" />
-          
           {recipe.steps?.map((step: string, index: number) => (
             <div key={index} className="flex gap-5 group">
-              <div className="h-10 w-10 rounded-2xl bg-white border-2 border-slate-50 shadow-sm text-slate-800 flex items-center justify-center text-sm font-black flex-shrink-0 group-hover:border-orange-200 transition-colors">
+              <div className="h-10 w-10 rounded-2xl bg-white border-2 border-slate-50 shadow-sm text-slate-800 flex items-center justify-center text-sm font-black flex-shrink-0">
                 {index + 1}
               </div>
               <div className="pt-1.5 flex-1">
-                <p className="text-slate-600 text-sm leading-relaxed font-medium">
-                  {step}
-                </p>
+                <p className="text-slate-600 text-sm leading-relaxed font-medium">{step}</p>
               </div>
             </div>
           ))}
@@ -158,34 +180,20 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
         </button>
       </div>
 
-      {/* MODALE DE CONFIRMATION DE SUPPRESSION */}
+      {/* MODALE DE CONFIRMATION */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
-          
           <div className="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom-8 duration-300">
             <div className="text-center space-y-4">
-              <div className="h-16 w-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-2">
-                🗑️
-              </div>
+              <div className="h-16 w-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-2">🗑️</div>
               <h3 className="text-xl font-black text-slate-800">Supprimer la pépite ?</h3>
               <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                Cette action est irréversible. Ta recette de <strong>{recipe.title}</strong> sera perdue à jamais.
+                Cette action est irréversible. Ta recette de <strong>{recipe.title}</strong> sera perdue.
               </p>
-              
               <div className="grid grid-cols-2 gap-3 pt-4">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl active:scale-95 transition-all text-sm"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="py-4 bg-red-500 text-white font-bold rounded-2xl shadow-lg shadow-red-200 active:scale-95 transition-all text-sm"
-                >
-                  Supprimer
-                </button>
+                <button onClick={() => setShowDeleteConfirm(false)} className="py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl text-sm">Annuler</button>
+                <button onClick={confirmDelete} className="py-4 bg-red-500 text-white font-bold rounded-2xl shadow-lg shadow-red-200 text-sm">Supprimer</button>
               </div>
             </div>
           </div>
