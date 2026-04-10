@@ -20,6 +20,11 @@ export default function HomeView({ onSelectRecipe }: HomeViewProps) {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.reload(); // Pour forcer la redirection vers le Login
+  };
+
   useEffect(() => {
     fetchRecipes();
   }, []);

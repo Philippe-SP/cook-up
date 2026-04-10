@@ -5,9 +5,10 @@ interface LayoutProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   userInitials: string;
+  onLogout: () => void;
 }
 
-export default function Layout({ children, activeTab, setActiveTab, userInitials }: LayoutProps) {
+export default function Layout({ children, activeTab, setActiveTab, onLogout, userInitials }: LayoutProps) {
   return (
     <div className="min-h-screen bg-slate-200 flex justify-center items-start sm:py-8">
       <div className="w-full max-w-md bg-white min-h-screen sm:min-h-[844px] sm:rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col border-x border-slate-100">
@@ -21,7 +22,9 @@ export default function Layout({ children, activeTab, setActiveTab, userInitials
             <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold leading-none">L'atelier culinaire</p>
           </div>
           <div className="h-10 w-10 rounded-2xl bg-orange-500 flex items-center justify-center text-white font-bold shadow-lg shadow-orange-200">
-            {userInitials}
+            <button onClick={onLogout} className="...">
+              {userInitials}
+            </button>
           </div>
         </header>
 
