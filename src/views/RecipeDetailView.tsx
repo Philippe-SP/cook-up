@@ -1,19 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../logic/supabase';
 
-// 1. On définit la structure exacte d'une recette
-interface Recipe {
-  id: string;
-  title: string;
-  category: string;
-  prep_time: number;
-  emoji: string;
-  bg_color: string;
-  is_favorite: boolean;
-  steps: string[]; // C'est un tableau de textes
-  user_id: string;
-}
-
 interface RecipeDetailViewProps {
   recipeId: string;
   onBack: () => void;
