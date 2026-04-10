@@ -6,11 +6,14 @@ import HomeView from './views/HomeView';
 import LoginView from './views/LoginView';
 import AddRecipeView from './views/AddRecipeView'; // <-- Nouvel import
 import type { User } from '@supabase/supabase-js';
+import RecipeDetailView from './views/RecipeDetailView';
+
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [user, setUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -63,7 +66,16 @@ export default function App() {
       userInitials={getUserInitials()}
     >
       {/* ROUTING SIMPLE */}
-      {activeTab === 'home' && <HomeView />}
+      {activeTab === 'home' && !selectedRecipeId && (
+        <HomeView onSelectRecipe={(id) => setSelectedRecipeId(id)} />
+      )}
+
+      {selectedRecipeId && (
+        <RecipeDetailView 
+          recipeId={selectedRecipeId} 
+          onBack={() => setSelectedRecipeId(null)} 
+        />
+      )}
       
       {activeTab === 'add' && (
         <AddRecipeView onSaveSuccess={() => setActiveTab('home')} />
