@@ -135,8 +135,13 @@ export default function AddRecipeView({ onSaveSuccess }: { onSaveSuccess: () => 
           <input 
             type="number" 
             className="w-20 bg-white border-none rounded-xl text-center font-black text-orange-600 shadow-sm py-2"
-            value={prepTime}
-            onChange={(e) => setPrepTime(parseInt(e.target.value) || 0)}
+            value={prepTime === 0 ? '' : prepTime} 
+            onChange={(e) => {
+              const val = e.target.value;
+              // Si l'utilisateur efface tout, on met 0 en interne mais l'input affichera vide
+              setPrepTime(val === '' ? 0 : parseInt(val));
+            }}
+            placeholder="0"
           />
         </div>
 

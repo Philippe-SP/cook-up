@@ -62,31 +62,31 @@ export default function HomeView({ onSelectRecipe }: HomeViewProps) {
           {recipes.map((recipe) => (
             <div 
               key={recipe.id}
-              // 2. AU CLIC : On appelle la fonction passée par le parent avec l'ID
               onClick={() => onSelectRecipe(recipe.id)}
               className="bg-white border border-slate-100 p-4 rounded-[2rem] shadow-sm flex items-center gap-4 active:scale-95 transition-all cursor-pointer hover:border-orange-200"
             >
-              <div 
-                className={`h-16 w-16 ${recipe.bg_color || 'bg-slate-50'} rounded-2xl flex items-center justify-center text-3xl shadow-inner`}
-              >
+              {/* Carré Emoji */}
+              <div className={`h-16 w-16 ${recipe.bg_color || 'bg-slate-50'} rounded-2xl flex items-center justify-center text-3xl shadow-inner flex-shrink-0`}>
                 {recipe.emoji || '🥘'}
               </div>
-              <div className="flex-1">
-                <div className="flex flex-col items-end gap-2 pr-2">
-                    <div className="text-slate-200 text-xl">›</div>
-                    {recipe.is_favorite && (
-                        <span className="text-sm animate-in zoom-in duration-300">🧡</span>
-                    )}
-                </div>
-                <h3 className="font-bold text-slate-800">{recipe.title}</h3>
-                <div className="flex gap-2 text-[10px] font-bold uppercase tracking-wider mt-1">
+
+              {/* Infos texte */}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-slate-800 truncate">{recipe.title}</h3>
+                <div className="flex gap-2 text-[10px] font-bold uppercase tracking-wider mt-1 items-center">
                   <span className="text-orange-500">{recipe.category}</span>
                   <span className="text-slate-300">•</span>
                   <span className="text-slate-400">⏱️ {recipe.prep_time} min</span>
                 </div>
               </div>
-              {/* Petit indicateur visuel pour dire que c'est cliquable */}
-              <div className="text-slate-200 text-xl pr-2">›</div>
+
+              {/* BLOC MODIFIÉ ICI */}
+              <div className="flex items-center gap-3 pr-2 flex-shrink-0">
+                {recipe.is_favorite && (
+                  <span className="text-lg animate-in zoom-in duration-300">🧡</span>
+                )}
+                <div className="text-slate-200 text-2xl leading-none select-none">›</div>
+              </div>
             </div>
           ))}
         </div>

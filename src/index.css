@@ -8,3 +8,15 @@
   background-color: #f8fafc;
   color: #0f172a; /* Force le texte en sombre pour éviter le blanc sur blanc */
 }
+
+/* Supprime les flèches sur Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Supprime les flèches sur Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
