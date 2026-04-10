@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../logic/supabase';
+import type { Ingredient } from '../logic/types';
 
 export default function AddRecipeView({ onSaveSuccess }: { onSaveSuccess: () => void }) {
   const [title, setTitle] = useState('');
@@ -46,13 +47,28 @@ export default function AddRecipeView({ onSaveSuccess }: { onSaveSuccess: () => 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return alert("Tu dois être connecté !");
 
+    // PARSING TECHNIQUE : On transforme "amount" en quantity + unit pour la BDD
+    const formattedIngredients: Ingredient[] = ingredients
+      .filter(i => i.name.trim() !== '')
+      .map(i => {
+        const numMatch = i.amount.match(/(\d+(?:[.,]\d+)?)/);
+        const quantity = numMatch ? parseFloat(numMatch[0].replace(',', '.')) : 0;
+        const unit = numMatch ? i.amount.replace(numMatch[0], '').trim() : i.amount;
+        
+        return {
+          name: i.name,
+          quantity: quantity,
+          unit: unit
+        };
+      });
+
     const { error } = await supabase.from('recipes').insert([
       {
         title,
         category,
-        prep_time: prepTime,
-        servings,
-        ingredients: ingredients.filter(i => i.name.trim() !== ''),
+        prep_time: Number(prepTime),
+        servings: Number(servings),
+        ingredients: formattedIngredients,
         steps: steps.filter(s => s.trim() !== ''),
         emoji, 
         bg_color: bgColor, 
@@ -159,7 +175,7 @@ export default function AddRecipeView({ onSaveSuccess }: { onSaveSuccess: () => 
           </div>
         </div>
 
-        {/* INGRÉDIENTS (Croix incorporée dans l'input nom) */}
+        {/* INGRÉDIENTS */}
         <div className="space-y-4 px-2">
           <h3 className="font-black text-slate-400 uppercase text-[10px] tracking-[0.2em] ml-2">Ingrédients</h3>
           {ingredients.map((ing, index) => (

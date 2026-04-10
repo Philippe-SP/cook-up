@@ -23,7 +23,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
           {recipe.title}
         </h4>
         <div className="flex gap-4">
-          <span className="text-xs font-bold text-slate-400">⏱️ {recipe.prepTime}m</span>
+          <span className="text-xs font-bold text-slate-400">⏱️ {recipe.prep_time}m</span>
           <span className="text-xs font-bold text-slate-400">👥 {recipe.servings}p</span>
         </div>
       </div>
@@ -32,7 +32,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
         e.stopPropagation(); // Évite d'ouvrir la recette quand on clique juste sur le coeur
         // Logique favorite ici plus tard
       }}>
-        {recipe.isFavorite ? '🧡' : '🤍'}
+        {recipe.is_favorite ? '🧡' : '🤍'}
       </button>
     </div>
   );

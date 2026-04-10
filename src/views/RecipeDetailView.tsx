@@ -1,28 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../logic/supabase';
-
-interface Recipe {
-  id: string;
-  title: string;
-  category: string;
-  prep_time: number;
-  emoji: string;
-  bg_color: string;
-  is_favorite: boolean;
-  steps: string[];
-  servings: number;
-  ingredients: { name: string; amount: string }[];
-}
-
-interface RecipeDetailViewProps {
-  recipeId: string;
-  onBack: () => void;
-}
+import type { Recipe, RecipeDetailViewProps, Ingredient } from '../logic/types';
 
 export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewProps) {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [displayServings, setDisplayServings] = useState(2);
 
   useEffect(() => {
@@ -42,16 +26,13 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
     getRecipe();
   }, [recipeId]);
 
-  // Ajustement dynamique des quantités
-  const adjustAmount = (amount: string) => {
-    if (!recipe) return amount;
+  // Nouvelle fonction de calcul simplifiée car on a des nombres
+  const getAdjustedQuantity = (ing: Ingredient) => {
+    if (!recipe) return 0;
     const ratio = displayServings / (recipe.servings || 1);
-    // RegEx pour trouver les nombres (entiers ou décimaux)
-    return amount.replace(/(\d+(?:[\.,]\d+)?)/g, (match) => {
-      const num = parseFloat(match.replace(',', '.'));
-      const adjusted = Math.round(num * ratio * 10) / 10;
-      return adjusted.toString().replace('.', ',');
-    });
+    const adjusted = ing.quantity * ratio;
+    // Arrondi à 1 décimale max (ex: 2.3)
+    return Math.round(adjusted * 10) / 10;
   };
 
   const toggleFavorite = async () => {
@@ -63,6 +44,26 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
 
     if (error) alert(error.message);
     else setRecipe({ ...recipe, is_favorite: !recipe.is_favorite });
+  };
+
+  const addToShoppingList = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('shopping_list')
+      .upsert({
+        user_id: user.id,
+        recipe_id: recipeId,
+        servings_to_buy: displayServings
+      }, { onConflict: 'user_id,recipe_id' });
+
+    if (error) {
+      console.error("Erreur panier:", error.message);
+    } else {
+      setShowSuccessModal(true);
+      setTimeout(() => setShowSuccessModal(false), 2000);
+    }
   };
 
   const confirmDelete = async () => {
@@ -88,14 +89,11 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
   if (!recipe) return <div className="p-10 text-center text-slate-500">Oups, pépite introuvable.</div>;
 
   return (
-    <div className="space-y-8 animate-in slide-in-from-right duration-300 pb-24">
+    <div className="space-y-8 animate-in slide-in-from-right duration-300 pb-24 relative">
       
       {/* HEADER */}
       <div className="flex items-start gap-4 px-2">
-        <button 
-          onClick={onBack} 
-          className="h-12 w-12 bg-white shadow-sm border border-slate-100 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-all"
-        >
+        <button onClick={onBack} className="h-12 w-12 bg-white shadow-sm border border-slate-100 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-all text-slate-400">
           ←
         </button>
         <div className="flex-1 pt-1">
@@ -104,9 +102,7 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
                 {recipe.category}
              </span>
           </div>
-          <h2 className="text-3xl font-black text-slate-800 leading-tight">
-            {recipe.title}
-          </h2>
+          <h2 className="text-3xl font-black text-slate-800 leading-tight">{recipe.title}</h2>
         </div>
       </div>
 
@@ -119,7 +115,6 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
               <p className="text-xl font-black text-slate-800">{recipe.prep_time} min</p>
             </div>
         </div>
-
         <div className="flex gap-2">
             <button onClick={toggleFavorite} className="h-12 w-12 bg-white/50 rounded-2xl flex items-center justify-center text-xl active:scale-90 transition-all">
               {recipe.is_favorite ? '🧡' : '🤍'}
@@ -130,7 +125,7 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
         </div>
       </div>
 
-      {/* SECTION INGRÉDIENTS AVEC AJUSTEMENT */}
+      {/* INGRÉDIENTS (Mis à jour avec quantity et unit) */}
       <div className="space-y-4 px-2">
         <div className="flex items-center justify-between px-4 bg-slate-50 p-4 rounded-[2rem] border border-slate-100/50">
           <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Ingrédients</h3>
@@ -140,24 +135,21 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
             <button onClick={() => setDisplayServings(displayServings + 1)} className="text-orange-500 font-black px-1">+</button>
           </div>
         </div>
-
         <div className="grid grid-cols-1 gap-2">
           {recipe.ingredients?.map((ing, index) => (
             <div key={index} className="flex justify-between items-center p-4 bg-white border border-slate-50 rounded-2xl shadow-sm mx-1">
               <span className="text-sm font-medium text-slate-600">{ing.name}</span>
-              <span className="text-sm font-black text-orange-500">{adjustAmount(ing.amount)}</span>
+              <span className="text-sm font-black text-orange-500">
+                {getAdjustedQuantity(ing)} {ing.unit}
+              </span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* SECTION MÉTHODE */}
+      {/* MÉTHODE */}
       <div className="space-y-6 px-2">
-        <div className="flex items-center justify-between px-2">
-          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">La Méthode</h3>
-          <span className="text-[10px] font-bold text-slate-300">{recipe.steps?.length || 0} étapes</span>
-        </div>
-        
+        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 px-2 text-left">La Méthode</h3>
         <div className="space-y-8 relative">
           <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-slate-100 -z-10" />
           {recipe.steps?.map((step: string, index: number) => (
@@ -166,21 +158,44 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
                 {index + 1}
               </div>
               <div className="pt-1.5 flex-1">
-                <p className="text-slate-600 text-sm leading-relaxed font-medium">{step}</p>
+                <p className="text-slate-600 text-sm leading-relaxed font-medium text-left">{step}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* BOUTON CHRONO */}
-      <div className="px-2">
-        <button className="w-full py-5 bg-slate-900 text-white font-black rounded-[2rem] shadow-xl active:scale-95 transition-all">
-          👨‍🍳 Lancer le chrono
+      {/* BOUTONS ACTIONS */}
+      <div className="px-2 space-y-3">
+        <button 
+            onClick={addToShoppingList}
+            className="w-full py-5 bg-orange-100 text-orange-600 font-black rounded-[2rem] border-2 border-orange-200 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-sm"
+        >
+            <span className="text-xl">🛒</span> Ajouter aux courses
+        </button>
+
+        <button 
+            className="w-full py-5 bg-slate-900 text-white font-black rounded-[2rem] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
+        >
+            <span className="text-xl">👨‍🍳</span> Lancer le chrono
         </button>
       </div>
 
-      {/* MODALE DE CONFIRMATION */}
+      {/* MODALE DE SUCCÈS PANIER */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
+            <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[2px]" />
+            <div className="relative bg-white rounded-[2.5rem] p-8 shadow-2xl text-center space-y-4 border border-slate-50">
+            <div className="h-20 w-20 bg-emerald-100 text-emerald-500 rounded-3xl flex items-center justify-center text-4xl mx-auto animate-bounce">🛒</div>
+            <div>
+                <h3 className="text-xl font-black text-slate-800">C'est dans le panier !</h3>
+                <p className="text-slate-500 text-sm font-medium">Tes ingrédients ont été ajoutés.</p>
+            </div>
+            </div>
+        </div>
+      )}
+
+      {/* MODALE SUPPRESSION */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
@@ -188,9 +203,7 @@ export default function RecipeDetailView({ recipeId, onBack }: RecipeDetailViewP
             <div className="text-center space-y-4">
               <div className="h-16 w-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-2">🗑️</div>
               <h3 className="text-xl font-black text-slate-800">Supprimer la pépite ?</h3>
-              <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                Cette action est irréversible. Ta recette de <strong>{recipe.title}</strong> sera perdue.
-              </p>
+              <p className="text-slate-500 text-sm font-medium leading-relaxed">Cette action est irréversible.</p>
               <div className="grid grid-cols-2 gap-3 pt-4">
                 <button onClick={() => setShowDeleteConfirm(false)} className="py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl text-sm">Annuler</button>
                 <button onClick={confirmDelete} className="py-4 bg-red-500 text-white font-bold rounded-2xl shadow-lg shadow-red-200 text-sm">Supprimer</button>

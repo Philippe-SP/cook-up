@@ -7,6 +7,7 @@ import LoginView from './views/LoginView';
 import AddRecipeView from './views/AddRecipeView';
 import type { User } from '@supabase/supabase-js';
 import RecipeDetailView from './views/RecipeDetailView';
+import ShoppingView from './views/ShoppingView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -28,12 +29,8 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Ouverture de la modale de confirmation de logout
-  const handleLogout = () => {
-    setShowLogoutConfirm(true);
-  };
+  const handleLogout = () => setShowLogoutConfirm(true);
 
-  // logout une fois confirmé
   const confirmLogout = async () => {
     await supabase.auth.signOut();
     setShowLogoutConfirm(false);
@@ -74,71 +71,52 @@ export default function App() {
   return (
     <Layout 
       activeTab={activeTab} 
-      setActiveTab={setActiveTab} 
+      setActiveTab={(tab) => {
+        setActiveTab(tab);
+        if (tab !== 'home') setSelectedRecipeId(null); 
+      }} 
       userInitials={getUserInitials()}
-      onLogout={handleLogout} // <-- On passe la fonction ici
+      onLogout={handleLogout}
     >
-      {/* ROUTING SIMPLE */}
-      {activeTab === 'home' && !selectedRecipeId && (
-        <HomeView onSelectRecipe={(id) => setSelectedRecipeId(id)} />
-      )}
-
-      {selectedRecipeId && (
+      {/* AFFICHAGE CONDITIONNEL : Détail OU Onglets */}
+      {selectedRecipeId ? (
         <RecipeDetailView 
           recipeId={selectedRecipeId} 
           onBack={() => setSelectedRecipeId(null)} 
         />
-      )}
-      
-      {activeTab === 'add' && (
-        <AddRecipeView onSaveSuccess={() => setActiveTab('home')} />
+      ) : (
+        <>
+          {activeTab === 'home' && (
+            <HomeView onSelectRecipe={(id) => setSelectedRecipeId(id)} />
+          )}
+          
+          {activeTab === 'add' && (
+            <AddRecipeView onSaveSuccess={() => setActiveTab('home')} />
+          )}
+
+          {activeTab === 'settings' && (
+            // eslint-disable-next-line react-hooks/purity
+            <ShoppingView key={Date.now()} />
+          )}
+        </>
       )}
 
-      {activeTab === 'settings' && (
-        <div className="p-4 bg-slate-50 rounded-[2rem] text-center py-20 text-slate-400 font-bold italic">
-          Bientôt : Liste de courses intelligente 🛒
-        </div>
-      )}
-
-      {/* MODALE DE CONFIRMATION DE DÉCONNEXION */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 sm:p-6 animate-in fade-in duration-300">
-          {/* Overlay sombre */}
-          <div 
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            onClick={() => setShowLogoutConfirm(false)}
-          />
-          
-          {/* Contenu de la modale */}
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
           <div className="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
             <div className="text-center space-y-4">
-              <div className="h-16 w-16 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-2">
-                👋
-              </div>
+              <div className="h-16 w-16 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-2">👋</div>
               <h3 className="text-xl font-black text-slate-800">Déjà faim ?</h3>
-              <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                Es-tu sûr de vouloir te déconnecter de ton atelier culinaire ?
-              </p>
-              
+              <p className="text-slate-500 text-sm font-medium leading-relaxed">Es-tu sûr de vouloir te déconnecter ?</p>
               <div className="grid grid-cols-2 gap-3 pt-4">
-                <button
-                  onClick={() => setShowLogoutConfirm(false)}
-                  className="py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl active:scale-95 transition-all text-sm"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={confirmLogout}
-                  className="py-4 bg-orange-500 text-white font-bold rounded-2xl shadow-lg shadow-orange-200 active:scale-95 transition-all text-sm"
-                >
-                  Quitter
-                </button>
+                <button onClick={() => setShowLogoutConfirm(false)} className="py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl text-sm">Annuler</button>
+                <button onClick={confirmLogout} className="py-4 bg-orange-500 text-white font-bold rounded-2xl shadow-lg text-sm">Quitter</button>
               </div>
             </div>
           </div>
         </div>
       )}
     </Layout>
-    
   );
 }

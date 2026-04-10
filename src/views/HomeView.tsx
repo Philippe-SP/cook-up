@@ -1,20 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../logic/supabase';
-
-interface Recipe {
-  id: string;
-  title: string;
-  category: string;
-  prep_time: number;
-  servings: number; // Ajouté pour la cohérence avec la BDD
-  emoji: string;
-  bg_color: string;
-  is_favorite: boolean;
-}
-
-interface HomeViewProps {
-  onSelectRecipe: (id: string) => void;
-}
+import type { Recipe, HomeViewProps } from '../logic/types';
 
 export default function HomeView({ onSelectRecipe }: HomeViewProps) {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
